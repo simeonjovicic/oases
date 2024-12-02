@@ -1,2 +1,1 @@
-Simeon Jovicic
-Hanxiang Lee
+Backend
