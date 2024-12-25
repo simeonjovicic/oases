@@ -1,18 +1,19 @@
-CREATE DATABASE IF NOT EXISTS `db.sql`;
+DROP DATABASE IF EXISTS db;
+CREATE DATABASE IF NOT EXISTS db;
 
-USE `db.sql`;
+USE db;
 
-CREATE TABLE IF NOT EXISTS `services` (
-    `id` INT PRIMARY KEY,
-    `name` VARCHAR(255) NOT NULL,
-    `category` VARCHAR(255) NOT NULL,
-    `price` DECIMAL(10, 2) NOT NULL,
-    `timeSpan` VARCHAR(50) NOT NULL,
-    `image` TEXT,
-    `description` TEXT
+CREATE TABLE IF NOT EXISTS services (
+    id INT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    category VARCHAR(255) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    timeSpan VARCHAR(50) NOT NULL,
+    image TEXT,
+    description TEXT
 );
 
-INSERT INTO `services` (`id`, `name`, `category`, `price`, `timeSpan`, `image`, `description`) VALUES
+INSERT INTO services (id, name, category, price, timeSpan, image, description) VALUES
 (1, 'Maniküre & Pediküre', 'Nägel', 73, '80min', NULL, 'Je nach Aufwand kann es zu einem Aufpreis kommen.'),
 (2, 'Maniküre', 'Nägel', 30, '40min', NULL, 'Hände reichen, Hände zeigen – wir tun es ständig, oft unbewusst. Dabei gelten gepflegte, im Idealfall regelmäßig vom Profi manikürte Hände als nachhaltiger Eindruck und Vertrauensgenerator. Deshalb geht das Thema Männer wie Frauen an. Blicke fallen eben aufs Gesicht und die Hände. Eine professionelle Maniküre dauert etwa 30 bis 40 Minuten'),
 (3, 'Pediküre', 'Nägel', 43, '40min', NULL, 'A soothing massage using warm stones to relax muscles and improve blood flow while alleviating tension.'),
