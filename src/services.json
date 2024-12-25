@@ -1,0 +1,183 @@
+[
+    {
+      "id": 1,
+      "name": "Maniküre & Pediküre",
+      "category": "Nägel",
+      "price": 73,
+      "timeSpan": "80min",
+      "image": null,
+      "description": "Je nach Aufwand kann es zu einem Aufpreis kommen."
+    },
+    {
+      "id": 2,
+      "name": "Maniküre",
+      "category": "Nägel",
+      "price": 30,
+      "timeSpan": "40min",
+      "image": null,
+      "description": "Hände reichen, Hände zeigen – wir tun es ständig, oft unbewusst. Dabei gelten gepflegte, im Idealfall regelmäßig vom Profi manikürte Hände als nachhaltiger Eindruck und Vertrauensgenerator. Deshalb geht das Thema Männer wie Frauen an. Blicke fallen eben aufs Gesicht und die Hände. Eine professionelle Maniküre dauert etwa 30 bis 40 Minuten"
+    },
+    {
+      "id": 3,
+      "name": "Pediküre",
+      "category": "Nägel",
+      "price": 43,
+      "timeSpan": "40min",
+      "image": null,
+      "description": "A soothing massage using warm stones to relax muscles and improve blood flow while alleviating tension."
+    },
+    {
+      "id": 4,
+      "name": "Nagelmodellage mit Gel - Neues Set",
+      "category": "Nägel",
+      "price": 70,
+      "timeSpan": "75min",
+      "image": null,
+      "description": "Nagelmodellage mit Acryl (ohne Nagellack)"
+    },
+    {
+      "id": 5,
+      "name": "Nagelmodellage auffüllen mit Farbe normal",
+      "category": "Nägel",
+      "price": 55,
+      "timeSpan": "75min",
+      "image": null,
+      "description": null
+    },
+    {
+      "id": 6,
+      "name": "Nagelmodellage auffüllen mit Farbe langer",
+      "category": "Nägel",
+      "price": 60,
+      "timeSpan": "75min",
+      "image": null,
+      "description": null
+    },
+    {
+      "id": 7,
+      "name": "Shellac mit Maniküre",
+      "category": "Nägel",
+      "price": 50,
+      "timeSpan": "60min",
+      "image": null,
+      "description": "Nagelmodellage auffüllen mit Gel (ohne Lack)"
+    },
+    {
+      "id": 8,
+      "name": "Pediküre mit Shellac",
+      "category": "Nägel",
+      "price": 60,
+      "timeSpan": "60min",
+      "image": null,
+      "description": "Nervt es dich, dass Nagellack nicht lange genug hält? Dann ist Gel eine gute Alternative für dich. Bei der Pediküre kannst du deine Füße zunächst von abgestorbenen Hautzellen reinigen lassen, und nach einer Pflegebahandlung deine Nägel mit dieser Gel-Variante versehen lassen. Für garantiert kratz- und stoßfeste Nägel - und zwar bis zu 4 Wochen!"
+    },
+    {
+      "id": 9,
+      "name": "Maniküre mit Gellack / Shellac",
+      "category": "Nägel",
+      "price": 55,
+      "timeSpan": "60min",
+      "image": null,
+      "description": "Nervt es dich, dass Nagellack nicht lange genug hält? Dann ist diese Behandlung eine gute Alternative für dich. Bei der Maniküre kannst du deine Hände zunächst von abgestorbenen Hautzellen reinigen lassen, und nach einer Pflegebahandlung deine Nägel mit dieser Gel-Variante versehen lassen. Für bis zu 4-wöchigen Halt und Schutz gegen Kratzer und Abblättern!"
+    },
+    {
+      "id": 10,
+      "name": "Pediküre plus",
+      "category": "Nägel",
+      "price": 45,
+      "timeSpan": "50min",
+      "image": null,
+      "description": "Eine Express Pediküre eigent sich für alle, die wenig Zeit haben. Sie verwandelt deine Füße: Abgestorbene Hautzellen werden entfernt, die Nägel in Form gebracht und wenn du magst, mit deiner Lieblingsfarbe versehen. Freu dich also auf zarte Füße und glänzende Fußnägel. So bist du immer bereit für Flip Flop, Sandale oder was auch immer kommen mag."
+    },
+    {
+      "id": 11,
+      "name": "Pediküre plus + Gellack",
+      "category": "Nägel",
+      "price": 60,
+      "timeSpan": "75min",
+      "image": null,
+      "description": "Eine Express Pediküre eigent sich für alle, die wenig Zeit haben. Sie verwandelt deine Füße: Abgestorbene Hautzellen werden entfernt, die Nägel in Form gebracht und wenn du magst, mit deiner Lieblingsfarbe versehen. Freu dich also auf zarte Füße und glänzende Fußnägel. So bist du immer bereit für Flip Flop, Sandale oder was auch immer kommen mag."
+    },
+    {
+      "id": 12,
+      "name": "Diabetes Fußpflege",
+      "category": "Nägel",
+      "price": 45,
+      "timeSpan": "45min",
+      "image": null,
+      "description": "Bei der Fußpflege werden verschiedene Schritte ausgeführt, um die Haut deiner Füße gesund und zart werden zu lassen. Hornhaut wird entfernt und Nägel fachgerecht in Form geschnitten."
+    },
+    {
+      "id": 13,
+      "name": "Nagelmodellage auffüllen",
+      "category": "Nägel",
+      "price": 50,
+      "timeSpan": "90min",
+      "image": null,
+      "description": null
+    },
+    {
+      "id": 14,
+      "name": "Nagelmodellage - Neues Set mit Gel",
+      "category": "Nägel",
+      "price": 60,
+      "timeSpan": "75min",
+      "image": null,
+      "description": "Dir gefallen deine Fingernägel nicht? Dann könnte die Nagelmodellage mit Acryl eine super Lösung für dich sein. Acryl-Nägel verstärken die Naturnägel und wirken im Vergleich zu Gel-Nägeln noch natürlicher. Damit die kleinen Kunstwerke halten können, wird zunächst der Naturnagel an der Oberfläche leicht angeraut und mit einem Primer versehen, um die Acrylschicht auf dem Naturnagel gut haltbar zu machen. Du möchtest deine Nägel gerne verlängern? Kein Problem, dazu wird zusätzlich noch eine Schablone angebracht. Mit dem Pinsel wird dann die Flüssigkeit und im Anschluss das Acrylpulver aufgetragen."
+    },
+    {
+      "id": 15,
+      "name": "Nagelmodellage - Auffüllen mit Gel extra lang(stiletto nails)",
+      "category": "Nägel",
+      "price": 60,
+      "timeSpan": "90min",
+      "image": null,
+      "description": "Das Auffüllen der Nägel wird etwa 3 bis 4 Wochen nach der ersten Nagelmodellage empfohlen. Eine schnelle Auffüllung der Nägel ist der beste Weg, um das Beste aus deinen Nagelverlängerungen herauszuholen."
+    },
+    {
+      "id": 16,
+      "name": "Nagelmodellage - Auffüllen mit FRENCH",
+      "category": "Nägel",
+      "price": 60,
+      "timeSpan": "75min",
+      "image": null,
+      "description": "Das Auffüllen der Nägel wird etwa 3 bis 4 Wochen nach der ersten Nagelmodellage empfohlen. Eine schnelle Auffüllung der Nägel ist der beste Weg, um das Beste aus deinen Nagelverlängerungen herauszuholen."
+    },
+    {
+      "id": 17,
+      "name": "Damen Waxing - Bikini(nur Seite)",
+      "category": "Haarentfernung",
+      "price": 35,
+      "timeSpan": "30min",
+      "image": null,
+      "description": "Um ein tolles Ergebnis zu garantieren, sollte dein Haar, das entfernt werden soll, vor dem Termin mindestens 0,5 cm lang sein. Das bedeutet im Durchschnitt zwei Wochen wachsen lassen."
+    },
+    {
+      "id": 18,
+      "name": "Damen Waxing - Bikini",
+      "category": "Haarentfernung",
+      "price": 50,
+      "timeSpan": "45min",
+      "image": null,
+      "description": "Um ein tolles Ergebnis zu garantieren, sollte dein Haar, das entfernt werden soll, vor dem Termin mindestens 0,5 cm lang sein. Das bedeutet im Durchschnitt zwei Wochen wachsen lassen."
+    },
+    {
+      "id": 19,
+      "name": "Damen Waxing - Achseln",
+      "category": "Haarentfernung",
+      "price": 20,
+      "timeSpan": "15min",
+      "image": null,
+      "description": "Um ein tolles Ergebnis zu garantieren, sollte dein Haar, das entfernt werden soll, vor dem Termin mindestens 0,5 cm lang sein. Das bedeutet im Durchschnitt zwei Wochen wachsen lassen."
+    },
+    {
+      "id": 20,
+      "name": "Herren Waxing- Rücken",
+      "category": "Haarentfernung",
+      "price": 50,
+      "timeSpan": "45min",
+      "image": null,
+      "description": "Um ein tolles Ergebnis zu garantieren, sollte dein Haar, das entfernt werden soll, vor dem Termin mindestens 0,5 cm lang sein. Das bedeutet im Durchschnitt zwei Wochen wachsen lassen."
+    }
+  ]
+  
