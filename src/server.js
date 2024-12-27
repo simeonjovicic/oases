@@ -195,6 +195,85 @@ app.delete("/api/services/:id", async (req, res) => {
   }
 });
 
+// PUT
+app.put("/api/services/:id", upload.single("image"), async (req, res) => {
+  const { id } = req.params;
+  const { name, category, description, price, timeSpan } = req.body;
+
+  const connection = await db.getConnection();
+  const buffer = req.file?.buffer;
+  const finalPath = req.file
+    ? path.join(
+        __dirname,
+        "../assets/images",
+        `${Date.now()}-${req.file.originalname}`
+      )
+    : null;
+
+  try {
+    if (!name || !category || !description || !price || !timeSpan) {
+      return res.status(400).json({
+        error: "Name, category, description, price, and timeSpan are required",
+      });
+    }
+
+    await connection.beginTransaction();
+
+    // Fetch existing service
+    const [existingService] = await connection.query(
+      "SELECT * FROM services WHERE id = ?",
+      [id]
+    );
+
+    if (existingService.length === 0) {
+      return res.status(404).json({ error: "Service not found" });
+    }
+
+    const updateQuery = `
+      UPDATE services
+      SET name = ?, category = ?, description = ?, price = ?, timeSpan = ?, image = ?
+      WHERE id = ?
+    `;
+    const newImagePath = req.file
+      ? `/images/${path.basename(finalPath)}`
+      : existingService[0].image;
+
+    await connection.query(updateQuery, [
+      name,
+      category,
+      description,
+      parseFloat(price),
+      timeSpan,
+      newImagePath,
+      id,
+    ]);
+
+    if (req.file) {
+      fs.writeFile(finalPath, buffer, (err) => {
+        if (err) {
+          console.error("Error saving the image:", err);
+          throw new Error("Image could not be saved");
+        }
+      });
+    }
+
+    await connection.commit();
+
+    res.json({ message: "Service updated successfully" });
+  } catch (error) {
+    console.error("Error updating service:", error);
+    if (finalPath && fs.existsSync(finalPath)) {
+      fs.unlink(finalPath, (err) => {
+        if (err) console.error("Error deleting the image:", err);
+      });
+    }
+    await connection.rollback();
+    res.status(500).json({ error: "Error updating service" });
+  } finally {
+    connection.release();
+  }
+});
+
 // DISPLAY PORT TYPE SHIT
 const PORT = 5000;
 app.listen(PORT, () => {
