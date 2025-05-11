@@ -6,6 +6,14 @@ const multer = require("multer");
 const app = express();
 const cors = require("cors");
 
+// Firebase Admin Setup
+const admin = require("firebase-admin");
+const serviceAccount = require("../assets/config/servicekey.json"); // Replace with your Firebase service account key
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
 app.use(cors());
 app.use(
   cors({
@@ -21,6 +29,27 @@ app.use(
     credentials: true,
   })
 );
+app.use(express.json()); // Add this to parse JSON request bodies
+
+// Middleware to verify Firebase token
+const authenticate = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized - No token provided" });
+  }
+
+  const idToken = authHeader.split("Bearer ")[1];
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    req.user = decodedToken;
+    next();
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+  }
+};
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -28,13 +57,58 @@ const upload = multer({ storage: storage });
 const db = mysql.createPool({
   host: "localhost",
   user: "root",
-  password: "",
+  password: "Simeon",
   database: "db",
 });
 
 app.use("/images", express.static(path.join(__dirname, "../assets/images")));
 
-// GET ALL
+// Login endpoint
+app.post("/api/login", async (req, res) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    return res.status(400).json({ error: "ID token is required" });
+  }
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+    
+    const sessionCookie = await admin.auth().createSessionCookie(idToken, {
+      expiresIn,
+    });
+    
+    // Set cookie
+    res.cookie("session", sessionCookie, {
+      maxAge: expiresIn,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+    
+    res.json({ 
+      status: "success", 
+      user: {
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+        name: decodedToken.name || '',
+        picture: decodedToken.picture || ''
+      } 
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(401).json({ error: "Unauthorized - Invalid credentials" });
+  }
+});
+
+// Logout endpoint
+app.post("/api/logout", (req, res) => {
+  res.clearCookie("session");
+  res.json({ status: "success" });
+});
+
+// GET ALL (Public - no authentication required)
 app.get("/api/services", async (req, res) => {
   try {
     const [services] = await db.query("SELECT * FROM services");
@@ -45,7 +119,7 @@ app.get("/api/services", async (req, res) => {
   }
 });
 
-// GET BY ID
+// GET BY ID (Public - no authentication required)
 app.get("/api/services/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -63,8 +137,8 @@ app.get("/api/services/:id", async (req, res) => {
   }
 });
 
-// POST
-app.post("/api/services", upload.single("image"), async (req, res) => {
+// POST (Protected - requires authentication)
+app.post("/api/services", authenticate, upload.single("image"), async (req, res) => {
   const connection = await db.getConnection();
   const buffer = req.file?.buffer; // Image data in memory
   const finalPath = req.file
@@ -142,8 +216,8 @@ app.post("/api/services", upload.single("image"), async (req, res) => {
   }
 });
 
-// DELETE
-app.delete("/api/services/:id", async (req, res) => {
+// DELETE (Protected - requires authentication)
+app.delete("/api/services/:id", authenticate, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -195,8 +269,8 @@ app.delete("/api/services/:id", async (req, res) => {
   }
 });
 
-// PUT
-app.put("/api/services/:id", upload.single("image"), async (req, res) => {
+// PUT (Protected - requires authentication)
+app.put("/api/services/:id", authenticate, upload.single("image"), async (req, res) => {
   const { id } = req.params;
   const { name, category, description, price, timeSpan } = req.body;
 
