@@ -4,8 +4,24 @@
   "description": "Backend",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx nodemon --exec npx babel-node src/server.js"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "dev": "npx nodemon --exec npx babel-node src/server.js",
+    "seed": "node db/seed.js",
+    "seed:small": "NUM_CUSTOMERS=10 NUM_BOOKINGS=50 node db/seed.js",
+    "seed:medium": "NUM_CUSTOMERS=100 NUM_BOOKINGS=500 node db/seed.js",
+    "seed:large": "NUM_CUSTOMERS=1000 NUM_BOOKINGS=5000 node db/seed.js",
+    "seed:huge": "NUM_CUSTOMERS=10000 NUM_BOOKINGS=50000 node db/seed.js",
+    "seed:max": "NUM_CUSTOMERS=100000 NUM_BOOKINGS=100000 node db/seed.js",
+    "seed:mongo": "node db/seedMongoDB.js",
+    "seed:mongo:small": "NUM_BOOKINGS=50 node db/seedMongoDB.js",
+    "seed:mongo:medium": "NUM_BOOKINGS=500 node db/seedMongoDB.js",
+    "seed:mongo:large": "NUM_BOOKINGS=5000 node db/seedMongoDB.js",
+    "seed:mongo:huge": "NUM_BOOKINGS=50000 node db/seedMongoDB.js",
+    "seed:mongo:max": "NUM_BOOKINGS=100000 node db/seedMongoDB.js",
+    "db:setup": "mysql -u root -p < db/db.sql",
+    "test:performance": "jest tests/performance.test.js"
   },
   "keywords": [],
   "author": "Simeon Jovicic, Hanxiang Lee",
@@ -14,6 +30,7 @@
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "express": "^4.21.1",
+    "mongoose": "^8.20.1",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.12.0"
   },
@@ -22,6 +39,7 @@
     "@babel/core": "^7.26.0",
     "@babel/node": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
+    "jest": "^29.7.0",
     "nodemon": "^3.1.7"
   }
 }

@@ -1,0 +1,73 @@
+{
+  "timestamp": "2025-11-24T15:11:29.936Z",
+  "tests": [
+    {
+      "test": "Batch Write 100",
+      "mysql": 22.925727,
+      "mongodb": 144.699006,
+      "speedup": -531.2
+    },
+    {
+      "test": "Batch Write 1000",
+      "mysql": 79.489632,
+      "mongodb": 789.141828,
+      "speedup": -892.8
+    },
+    {
+      "test": "Batch Write 100000",
+      "mysql": 8554.992075,
+      "mongodb": 69386.333567,
+      "speedup": -711.1
+    },
+    {
+      "test": "Single Write 100",
+      "mysql": 328.325928,
+      "mongodb": 308.447509,
+      "speedup": 6.1
+    },
+    {
+      "test": "Single Write 1000",
+      "mysql": 2790.498857,
+      "mongodb": 2123.217397,
+      "speedup": 23.9
+    },
+    {
+      "test": "Find ohne Filter",
+      "mysql": 2078.619212,
+      "mongodb": 13749.966587,
+      "mysqlCount": 209100,
+      "mongodbCount": 106000
+    },
+    {
+      "test": "Find mit Filter",
+      "mysql": 1158.253657,
+      "mongodb": 3421.72915,
+      "mysqlCount": 52428,
+      "mongodbCount": 26538
+    },
+    {
+      "test": "Find mit Filter + Projektion",
+      "mysql": 869.847047,
+      "mongodb": 1490.363888,
+      "mysqlCount": 52428,
+      "mongodbCount": 26538
+    },
+    {
+      "test": "Find mit Filter + Projektion + Sort",
+      "mysql": 1072.608741,
+      "mongodb": 1676.38504,
+      "mysqlCount": 52428,
+      "mongodbCount": 26538
+    },
+    {
+      "test": "Update",
+      "mysql": 10.579805,
+      "mongodb": 6.469973
+    },
+    {
+      "test": "Delete",
+      "mysql": 2.857274,
+      "mongodb": 2.644087
+    }
+  ]
+}

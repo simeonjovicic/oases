@@ -3,6 +3,7 @@ CREATE DATABASE IF NOT EXISTS db;
 
 USE db;
 
+-- Services Tabelle (bereits vorhanden)
 CREATE TABLE IF NOT EXISTS services (
     id INT auto_increment PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -11,6 +12,51 @@ CREATE TABLE IF NOT EXISTS services (
     timeSpan VARCHAR(50) NOT NULL,
     image TEXT,
     description TEXT
+);
+
+-- Customers Tabelle
+CREATE TABLE IF NOT EXISTS customers (
+    id INT auto_increment PRIMARY KEY,
+    firstName VARCHAR(255) NOT NULL,
+    lastName VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    phone VARCHAR(50),
+    address VARCHAR(500),
+    city VARCHAR(100),
+    postalCode VARCHAR(20),
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_name (lastName, firstName)
+);
+
+-- Bookings Tabelle
+CREATE TABLE IF NOT EXISTS bookings (
+    id INT auto_increment PRIMARY KEY,
+    customerId INT NOT NULL,
+    bookingDate DATETIME NOT NULL,
+    status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
+    totalPrice DECIMAL(10, 2) NOT NULL,
+    notes TEXT,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (customerId) REFERENCES customers(id) ON DELETE CASCADE,
+    INDEX idx_customer (customerId),
+    INDEX idx_booking_date (bookingDate),
+    INDEX idx_status (status)
+);
+
+-- Booking_Services Tabelle (m:n Beziehung)
+CREATE TABLE IF NOT EXISTS booking_services (
+    id INT auto_increment PRIMARY KEY,
+    bookingId INT NOT NULL,
+    serviceId INT NOT NULL,
+    quantity INT DEFAULT 1,
+    priceAtBooking DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (bookingId) REFERENCES bookings(id) ON DELETE CASCADE,
+    FOREIGN KEY (serviceId) REFERENCES services(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_booking_service (bookingId, serviceId),
+    INDEX idx_booking (bookingId),
+    INDEX idx_service (serviceId)
 );
 
 INSERT INTO services (id, name, category, price, timeSpan, image, description) VALUES
