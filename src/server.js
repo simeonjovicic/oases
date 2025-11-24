@@ -6,13 +6,6 @@ const multer = require("multer");
 const app = express();
 const cors = require("cors");
 
-const admin = require("firebase-admin");
-const serviceAccount = require("../assets/config/servicekey.json"); // Replace with your Firebase service account key
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
 app.use(cors());
 app.use(
   cors({
@@ -20,7 +13,6 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: [
       "Content-Type",
-      "Authorization",
       "Cache-Control",
       "Pragma",
       "Expires",
@@ -29,80 +21,6 @@ app.use(
   })
 );
 app.use(express.json()); // Add this to parse JSON request bodies
-
-// Middleware to verify Firebase token
-const authenticate = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res
-      .status(401)
-      .json({ message: "Unauthorized - No token provided" });
-  }
-
-  const idToken = authHeader.split("Bearer ")[1];
-
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    req.user = decodedToken;
-    console.log(req.user);
-    next();
-  } catch (error) {
-    console.error("Error verifying token:", error);
-    return res.status(401).json({ message: "Unauthorized - Invalid token" });
-  }
-};
-
-const checkAdminRole = async (req, res, next) => {
-  try {
-    const userDoc = await admin
-      .firestore()
-      .collection("users")
-      .doc(req.user.uid)
-      .get();
-    if (!userDoc.exists || userDoc.data().role !== "admin") {
-      return res.status(403).json({ error: "Insufficient permissions" });
-    }
-    next();
-  } catch (error) {
-    console.error("Error checking admin role:", error);
-    return res.status(500).json({ error: "Error checking permissions" });
-  }
-};
-
-app.put("/admin-api/user/:fbuid/claim", async (req, res) => {
-  const uid = req.params.fbuid;
-  const roleKey = req.query.roleKey;
-  const roleValue = req.query.roleValue;
-  console.log(
-    "Set customClaim/role of user " +
-      uid +
-      " to (roleKey: " +
-      roleKey +
-      ", roleValue: " +
-      roleValue +
-      ")"
-  );
-  try {
-    const customClaims = {};
-    customClaims[roleKey] = roleValue;
-    await admin.auth().setCustomUserClaims(uid, customClaims);
-    res.json({ message: "Custom claim set" });
-  } catch (error) {
-    console.error("Error setting custom claim:", error);
-    res.status(500).json({ error: "Error setting custom claim" });
-  }
-});
-app.get("/admin-api/user/:uid", async (req, res) => {
-  const { uid } = req.params;
-  try {
-    const user = await admin.auth().getUser(uid);
-    res.json(user);
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-    res.status(500).json({ error: "Error fetching user data" });
-  }
-});
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -115,51 +33,6 @@ const db = mysql.createPool({
 });
 
 app.use("/images", express.static(path.join(__dirname, "../assets/images")));
-
-// Login endpoint
-app.post("/api/login", async (req, res) => {
-  const { idToken } = req.body;
-
-  if (!idToken) {
-    return res.status(400).json({ error: "ID token is required" });
-  }
-
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-
-    const sessionCookie = await admin.auth().createSessionCookie(idToken, {
-      expiresIn,
-    });
-
-    // Set cookie
-    res.cookie("session", sessionCookie, {
-      maxAge: expiresIn,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
-
-    res.json({
-      status: "success",
-      user: {
-        uid: decodedToken.uid,
-        email: decodedToken.email,
-        name: decodedToken.name || "",
-        picture: decodedToken.picture || "",
-      },
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(401).json({ error: "Unauthorized - Invalid credentials" });
-  }
-});
-
-// Logout endpoint
-app.post("/api/logout", (req, res) => {
-  res.clearCookie("session");
-  res.json({ status: "success" });
-});
 
 // GET ALL (Public - no authentication required)
 app.get("/api/services", async (req, res) => {
@@ -190,11 +63,9 @@ app.get("/api/services/:id", async (req, res) => {
   }
 });
 
-// POST (Protected - requires authentication)
+// POST (Public - no authentication required)
 app.post(
   "/api/services",
-  authenticate,
-  checkAdminRole,
   upload.single("image"),
   async (req, res) => {
     const connection = await db.getConnection();
@@ -276,11 +147,9 @@ app.post(
   }
 );
 
-// DELETE (Protected - requires authentication)
+// DELETE (Public - no authentication required)
 app.delete(
   "/api/services/:id",
-  authenticate,
-  checkAdminRole,
   async (req, res) => {
     const { id } = req.params;
 
@@ -338,11 +207,9 @@ app.delete(
   }
 );
 
-// PUT (Protected - requires authentication)
+// PUT (Public - no authentication required)
 app.put(
   "/api/services/:id",
-  authenticate,
-  checkAdminRole,
   upload.single("image"),
   async (req, res) => {
     const { id } = req.params;
