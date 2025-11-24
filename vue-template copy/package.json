@@ -1,0 +1,28 @@
+{
+  "name": "vue-template",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.7.2",
+    "axios": "^1.7.9",
+    "bootstrap": "^5.3.3",
+    "bootstrap-icons": "^1.11.3",
+    "cypress": "^14.4.0",
+    "cypress-file-upload": "^5.0.8",
+    "mdb-vue-ui-kit": "^6.0.0",
+    "pinia": "^3.0.2",
+    "sinon": "^20.0.0",
+    "vue": "^3.4.29",
+    "vue-router": "^4.3.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.5",
+    "vite": "^5.3.1"
+  }
+}

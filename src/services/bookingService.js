@@ -12,10 +12,62 @@ class BookingService {
    */
   async createBooking(bookingData) {
     try {
+      // Validate required fields
+      if (!bookingData.customer) {
+        throw new Error('Customer information is required');
+      }
+      
+      if (!bookingData.customer.firstName || !bookingData.customer.lastName || !bookingData.customer.email) {
+        throw new Error('Customer firstName, lastName, and email are required');
+      }
+      
+      if (!bookingData.services || !Array.isArray(bookingData.services) || bookingData.services.length === 0) {
+        throw new Error('At least one service is required');
+      }
+      
+      if (!bookingData.bookingDate) {
+        throw new Error('bookingDate is required');
+      }
+      
+      // Ensure customerId is set
+      if (!bookingData.customer.customerId) {
+        bookingData.customer.customerId = 0;
+      }
+      
+      // Normalize services
+      bookingData.services = bookingData.services.map(service => ({
+        serviceId: parseInt(service.serviceId) || parseInt(service.id) || 0,
+        name: service.name || '',
+        category: service.category || '',
+        price: parseFloat(service.price) || 0,
+        timeSpan: service.timeSpan || '',
+        image: service.image || null,
+        description: service.description || null,
+        quantity: parseInt(service.quantity) || 1,
+        priceAtBooking: parseFloat(service.priceAtBooking) || parseFloat(service.price) || 0
+      }));
+      
+      // Calculate total price if not provided
+      if (!bookingData.totalPrice) {
+        bookingData.totalPrice = bookingData.services.reduce((sum, s) => {
+          return sum + (parseFloat(s.priceAtBooking) * parseInt(s.quantity || 1));
+        }, 0);
+      }
+      
+      // Set default status
+      if (!bookingData.status) {
+        bookingData.status = 'pending';
+      }
+      
+      // Set timestamps
+      bookingData.createdAt = new Date();
+      bookingData.updatedAt = new Date();
+      
       const booking = new Booking(bookingData);
       await booking.save();
       return booking;
     } catch (error) {
+      console.error('Create booking error:', error);
       throw new Error(`Fehler beim Erstellen der Buchung: ${error.message}`);
     }
   }
@@ -80,14 +132,47 @@ class BookingService {
    */
   async updateBooking(id, updateData) {
     try {
+      // Check if booking exists first
+      const existing = await Booking.findById(id);
+      if (!existing) {
+        throw new Error('Buchung nicht gefunden');
+      }
+      
+      // Ensure customerId is set in customer object if not present
+      if (updateData.customer && !updateData.customer.customerId && existing.customer) {
+        updateData.customer.customerId = existing.customer.customerId;
+      }
+      
+      // Ensure services have all required fields
+      if (updateData.services && Array.isArray(updateData.services)) {
+        updateData.services = updateData.services.map(service => ({
+          serviceId: service.serviceId || service.id || 0,
+          name: service.name || '',
+          category: service.category || '',
+          price: parseFloat(service.price) || 0,
+          timeSpan: service.timeSpan || '',
+          image: service.image || null,
+          description: service.description || null,
+          quantity: parseInt(service.quantity) || 1,
+          priceAtBooking: parseFloat(service.priceAtBooking) || parseFloat(service.price) || 0
+        }));
+      }
+      
+      // Ensure totalPrice is calculated
+      if (updateData.services && Array.isArray(updateData.services)) {
+        updateData.totalPrice = updateData.services.reduce((sum, s) => {
+          return sum + (parseFloat(s.priceAtBooking) * parseInt(s.quantity || 1));
+        }, 0);
+      }
+      
       const booking = await Booking.findByIdAndUpdate(
         id,
-        { ...updateData, updatedAt: new Date() },
+        { $set: updateData },
         { new: true, runValidators: true }
       );
       
       if (!booking) {
-        throw new Error('Buchung nicht gefunden');
+        throw new Error('Buchung konnte nicht aktualisiert werden');
       }
       
       // Berechne totalPrice neu falls Services geändert wurden
