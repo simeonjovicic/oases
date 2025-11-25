@@ -1,123 +1,141 @@
 {
-  "timestamp": "2025-11-25T12:44:31.352Z",
+  "timestamp": "2025-11-25T14:26:18.366Z",
   "tests": [
     {
       "test": "Batch Write 100",
-      "mysql": 19.506136,
-      "mongodb": 132.679486,
-      "speedup": -580.2
+      "mysql": 24.380481,
+      "mongodb": 148.438197,
+      "speedup": -508.8
     },
     {
       "test": "Batch Write 1000",
-      "mysql": 88.309542,
-      "mongodb": 777.827974,
-      "speedup": -780.8
+      "mysql": 80.523742,
+      "mongodb": 807.586117,
+      "speedup": -902.9
     },
     {
       "test": "Batch Write 100000",
-      "mysql": 6066.715663,
-      "mongodb": 60800.269825,
-      "speedup": -902.2
+      "mysql": 6316.613523,
+      "mongodb": 70338.739592,
+      "speedup": -1013.6
     },
     {
       "test": "Single Write 100",
-      "mysql": 744.270522,
-      "mongodb": 203.459301,
-      "speedup": 72.7
+      "mysql": 922.613497,
+      "mongodb": 286.274248,
+      "speedup": 69
     },
     {
       "test": "Single Write 1000",
-      "mysql": 7233.177463,
-      "mongodb": 1705.277776,
-      "speedup": 76.4
+      "mysql": 8380.360363,
+      "mongodb": 2245.53411,
+      "speedup": 73.2
     },
     {
       "test": "Find ohne Filter",
-      "mysql": 2333.051852,
-      "mongodb": 39498.100213,
-      "mysqlCount": 307100,
-      "mongodbCount": 307300
+      "mysql": 3455.784874,
+      "mongodb": 58975.519512,
+      "mysqlCount": 409300,
+      "mongodbCount": 409900
     },
     {
       "test": "Find mit Filter",
-      "mysql": 608.061542,
-      "mongodb": 9631.282013,
-      "mysqlCount": 76650,
-      "mongodbCount": 76687
+      "mysql": 1230.695698,
+      "mongodb": 13286.658034,
+      "mysqlCount": 102430,
+      "mongodbCount": 102582
     },
     {
       "test": "Find mit Filter + Projektion",
-      "mysql": 292.242398,
-      "mongodb": 4176.154982,
-      "mysqlCount": 76650,
-      "mongodbCount": 76687
+      "mysql": 386.396239,
+      "mongodb": 5359.711846,
+      "mysqlCount": 102430,
+      "mongodbCount": 102582
     },
     {
       "test": "Find mit Filter + Projektion + Sort",
-      "mysql": 511.10291,
-      "mongodb": 5205.662201,
-      "mysqlCount": 76650,
-      "mongodbCount": 76687
+      "mysql": 611.506343,
+      "mongodb": 7343.909863,
+      "mysqlCount": 102430,
+      "mongodbCount": 102582
     },
     {
       "test": "Update",
-      "mysql": 9.632197,
-      "mongodb": 9.755727
+      "mysql": 8.408831,
+      "mongodb": 9.763227
     },
     {
       "test": "Delete",
-      "mysql": 6.134285,
-      "mongodb": 3.225106
+      "mysql": 5.71707,
+      "mongodb": 4.316194
     },
     {
       "test": "Aggregation: Average Price by Status",
-      "mysql": 512.400668,
-      "mongodb": 195.525363
+      "mysql": 743.960396,
+      "mongodb": 280.425018
     },
     {
       "test": "Aggregation: Bookings by Category",
-      "mysql": 1234.464896,
-      "mongodb": 900.646374
+      "mysql": 2000.889258,
+      "mongodb": 1268.812344
     },
     {
       "test": "Aggregation: Top Customers by Revenue",
-      "mysql": 958.782146,
-      "mongodb": 2258.293191
+      "mysql": 1287.690714,
+      "mongodb": 3029.660706
     },
     {
       "test": "Referencing: Write 100 (Embedded vs Referenced)",
-      "embedded": 96.733438,
-      "referenced": 120.970092
+      "embedded": 117.021741,
+      "referenced": 110.582213
     },
     {
       "test": "Referencing: Find All (Embedded vs Referenced)",
-      "embedded": 42075.870024,
-      "referenced": 223.402767
+      "embedded": 59383.378858,
+      "referenced": 312.206578
     },
     {
       "test": "Referencing: Find with Filter (Embedded vs Referenced)",
-      "embedded": 10073.034475,
-      "referenced": 52.997071
+      "embedded": 14842.351248,
+      "referenced": 95.10851
     },
     {
       "test": "Index: Find by Status (With vs Without Index)",
-      "withIndex": 9785.441043,
-      "withoutIndex": 2.394626
+      "withIndex": 14875.298044,
+      "withoutIndex": 5.613281
     },
     {
       "test": "Index: Find by Email (With vs Without Index)",
-      "withIndex": 3.000225,
-      "withoutIndex": 1.619526
+      "withIndex": 3.135651,
+      "withoutIndex": 1.969043
     },
     {
       "test": "Index: Find All with Sort (With vs Without Index)",
-      "withIndex": 1752.812253,
-      "withoutIndex": 2.085439
+      "withIndex": 2494.424687,
+      "withoutIndex": 1.859601
     },
     {
       "test": "JSON Schema: Validation Overhead (1000 validations)",
-      "withoutValidation": 0.038186,
-      "withValidation": 5.782378
+      "withoutValidation": 0.032861,
+      "withValidation": 7.240901
+    },
+    {
+      "test": "Cloud: MongoDB Write 100",
+      "local": 137.278673,
+      "cloud": 401.375797,
+      "difference": "192.4%"
+    },
+    {
+      "test": "Cloud: MongoDB Find with Filter",
+      "local": 59.178342,
+      "cloud": 183.637562,
+      "difference": "210.3%"
+    },
+    {
+      "test": "Cloud: MongoDB Aggregation",
+      "local": 262.078835,
+      "cloud": 22.585643,
+      "difference": "-91.4%"
     }
   ]
 }

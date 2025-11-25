@@ -729,8 +729,8 @@ const PORT = 5000;
 
 // Connect to MongoDB on startup
 connectMongoDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
   });
 }).catch((error) => {
   console.error("Failed to connect to MongoDB:", error);

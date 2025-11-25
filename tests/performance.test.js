@@ -5,6 +5,8 @@ const bookingReferencedService = require('../src/services/bookingReferencedServi
 const bookingNoIndexService = require('../src/services/bookingNoIndexService');
 const { validateBookingSchema, validateBookingSchemaOrThrow } = require('../src/utils/jsonSchemaValidator');
 const { connectMongoDB, disconnectMongoDB } = require('../src/config/mongodb');
+const { getMySQLCloudConfig, getMongoDBCloudURI, isMySQLCloudConfigured, isMongoDBCloudConfigured } = require('../src/config/cloudConfig');
+const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 
@@ -1186,6 +1188,260 @@ describe('Performance Tests: Relational DB vs MongoDB', () => {
       });
 
       console.log(`  Validation Overhead: Without=${timeWithout.toFixed(2)}ms, With=${timeWith.toFixed(2)}ms (${((timeWith - timeWithout) / timeWithout * 100).toFixed(1)}% overhead)`);
+    });
+  });
+
+  // ============================================
+  // Cloud-Vergleich Tests (Bonus: 0.5 Punkte)
+  // ============================================
+  describe('Cloud Comparison: Local vs Cloud', () => {
+    let cloudMySQLConnection = null;
+    let cloudMongoDBConnection = null;
+    let cloudServices = null;
+    let cloudCustomerIds = null;
+
+    beforeAll(async () => {
+      // MySQL Cloud-Verbindung herstellen
+      if (isMySQLCloudConfigured()) {
+        const cloudConfig = getMySQLCloudConfig();
+        cloudMySQLConnection = await mysql.createConnection(cloudConfig);
+        console.log('✅ MySQL Cloud verbunden:', cloudConfig.host);
+        
+        // Services und Customer-IDs aus Cloud laden
+        const [cloudServicesData] = await cloudMySQLConnection.query("SELECT * FROM services LIMIT 5");
+        cloudServices = cloudServicesData;
+        const [cloudCustomersData] = await cloudMySQLConnection.query("SELECT id FROM customers");
+        cloudCustomerIds = cloudCustomersData.map(c => c.id);
+      }
+
+      // MongoDB Cloud-Verbindung herstellen (separate Connection)
+      if (isMongoDBCloudConfigured()) {
+        const cloudURI = getMongoDBCloudURI();
+        // Verwende createConnection() für eine separate Verbindung
+        cloudMongoDBConnection = mongoose.createConnection(cloudURI);
+        await cloudMongoDBConnection.asPromise();
+        console.log('✅ MongoDB Cloud verbunden');
+      }
+      
+      // Verwende lokale Services/CustomerIds für Cloud-Tests (falls Cloud nicht konfiguriert)
+      if (!cloudServices) cloudServices = services;
+      if (!cloudCustomerIds) cloudCustomerIds = customerIds;
+    });
+
+    afterAll(async () => {
+      if (cloudMySQLConnection) {
+        await cloudMySQLConnection.end();
+        console.log('🔌 MySQL Cloud Verbindung getrennt');
+      }
+      if (cloudMongoDBConnection) {
+        await cloudMongoDBConnection.close();
+        console.log('🔌 MongoDB Cloud Verbindung getrennt');
+      }
+    });
+
+    test('Cloud Comparison: MySQL Write (100 Bookings)', async () => {
+      if (!isMySQLCloudConfigured()) {
+        console.log('  ⚠️  MySQL Cloud nicht konfiguriert - Test übersprungen');
+        return;
+      }
+
+      // Generiere Test-Bookings
+      const testBookings = Array.from({ length: 100 }, () => generateTestBooking(services, customerIds));
+
+      // Lokal
+      const localRelationalDB = new RelationalDBTests(mysqlConnection);
+      const localStart = process.hrtime.bigint();
+      await localRelationalDB.writeBookings(testBookings);
+      const localEnd = process.hrtime.bigint();
+      const localTime = Number(localEnd - localStart) / 1000000;
+
+      // Cloud
+      const cloudRelationalDB = new RelationalDBTests(cloudMySQLConnection);
+      const cloudStart = process.hrtime.bigint();
+      await cloudRelationalDB.writeBookings(testBookings);
+      const cloudEnd = process.hrtime.bigint();
+      const cloudTime = Number(cloudEnd - cloudStart) / 1000000;
+
+      const diff = ((cloudTime - localTime) / localTime * 100).toFixed(1);
+      console.log(`  Write 100: Local=${localTime.toFixed(2)}ms, Cloud=${cloudTime.toFixed(2)}ms (${diff}% diff)`);
+
+      testResults.tests.push({
+        test: 'Cloud: MySQL Write 100',
+        local: localTime,
+        cloud: cloudTime,
+        difference: diff + '%'
+      });
+    });
+
+    test('Cloud Comparison: MySQL Find with Filter', async () => {
+      if (!isMySQLCloudConfigured()) {
+        console.log('  ⚠️  MySQL Cloud nicht konfiguriert - Test übersprungen');
+        return;
+      }
+
+      // Lokal
+      const localStart = process.hrtime.bigint();
+      const [localResults] = await mysqlConnection.query(
+        'SELECT * FROM bookings WHERE status = ? LIMIT 1000',
+        ['confirmed']
+      );
+      const localEnd = process.hrtime.bigint();
+      const localTime = Number(localEnd - localStart) / 1000000;
+
+      // Cloud
+      const cloudStart = process.hrtime.bigint();
+      const [cloudResults] = await cloudMySQLConnection.query(
+        'SELECT * FROM bookings WHERE status = ? LIMIT 1000',
+        ['confirmed']
+      );
+      const cloudEnd = process.hrtime.bigint();
+      const cloudTime = Number(cloudEnd - cloudStart) / 1000000;
+
+      const diff = ((cloudTime - localTime) / localTime * 100).toFixed(1);
+      console.log(`  Find with Filter: Local=${localTime.toFixed(2)}ms (${localResults.length} results), Cloud=${cloudTime.toFixed(2)}ms (${cloudResults.length} results) (${diff}% diff)`);
+
+      testResults.tests.push({
+        test: 'Cloud: MySQL Find with Filter',
+        local: localTime,
+        cloud: cloudTime,
+        difference: diff + '%'
+      });
+    });
+
+    test('Cloud Comparison: MongoDB Write (100 Bookings)', async () => {
+      if (!isMongoDBCloudConfigured()) {
+        console.log('  ⚠️  MongoDB Cloud nicht konfiguriert - Test übersprungen');
+        return;
+      }
+
+      // Lokal
+      const localBookings = Array.from({ length: 100 }, () => generateTestBooking(services, customerIds));
+      const localStart = process.hrtime.bigint();
+      await Booking.insertMany(localBookings);
+      const localEnd = process.hrtime.bigint();
+      const localTime = Number(localEnd - localStart) / 1000000;
+
+      // Cloud - verwende separate Connection
+      const CloudBooking = cloudMongoDBConnection.model('BookingCloud', Booking.schema, 'bookings-cloud');
+      const cloudBookings = Array.from({ length: 100 }, () => generateTestBooking(services, cloudCustomerIds || customerIds));
+      const cloudStart = process.hrtime.bigint();
+      await CloudBooking.insertMany(cloudBookings);
+      const cloudEnd = process.hrtime.bigint();
+      const cloudTime = Number(cloudEnd - cloudStart) / 1000000;
+
+      // Cleanup Cloud
+      await CloudBooking.deleteMany({});
+
+      const diff = ((cloudTime - localTime) / localTime * 100).toFixed(1);
+      console.log(`  Write 100: Local=${localTime.toFixed(2)}ms, Cloud=${cloudTime.toFixed(2)}ms (${diff}% diff)`);
+
+      testResults.tests.push({
+        test: 'Cloud: MongoDB Write 100',
+        local: localTime,
+        cloud: cloudTime,
+        difference: diff + '%'
+      });
+    });
+
+    test('Cloud Comparison: MongoDB Find with Filter', async () => {
+      if (!isMongoDBCloudConfigured()) {
+        console.log('  ⚠️  MongoDB Cloud nicht konfiguriert - Test übersprungen');
+        return;
+      }
+
+      // Lokal
+      const localStart = process.hrtime.bigint();
+      const localResults = await Booking.find({ status: 'confirmed' }).limit(1000).lean();
+      const localEnd = process.hrtime.bigint();
+      const localTime = Number(localEnd - localStart) / 1000000;
+
+      // Cloud - verwende separate Connection
+      const CloudBooking = cloudMongoDBConnection.model('BookingCloud', Booking.schema, 'bookings-cloud');
+      const cloudStart = process.hrtime.bigint();
+      const cloudResults = await CloudBooking.find({ status: 'confirmed' }).limit(1000).lean();
+      const cloudEnd = process.hrtime.bigint();
+      const cloudTime = Number(cloudEnd - cloudStart) / 1000000;
+
+      const diff = ((cloudTime - localTime) / localTime * 100).toFixed(1);
+      console.log(`  Find with Filter: Local=${localTime.toFixed(2)}ms (${localResults.length} results), Cloud=${cloudTime.toFixed(2)}ms (${cloudResults.length} results) (${diff}% diff)`);
+
+      testResults.tests.push({
+        test: 'Cloud: MongoDB Find with Filter',
+        local: localTime,
+        cloud: cloudTime,
+        difference: diff + '%'
+      });
+    });
+
+    test('Cloud Comparison: MySQL Aggregation', async () => {
+      if (!isMySQLCloudConfigured()) {
+        console.log('  ⚠️  MySQL Cloud nicht konfiguriert - Test übersprungen');
+        return;
+      }
+
+      // Lokal
+      const localStart = process.hrtime.bigint();
+      const [localResults] = await mysqlConnection.query(`
+        SELECT status, AVG(totalPrice) as avgPrice, COUNT(*) as count
+        FROM bookings
+        GROUP BY status
+      `);
+      const localEnd = process.hrtime.bigint();
+      const localTime = Number(localEnd - localStart) / 1000000;
+
+      // Cloud
+      const cloudStart = process.hrtime.bigint();
+      const [cloudResults] = await cloudMySQLConnection.query(`
+        SELECT status, AVG(totalPrice) as avgPrice, COUNT(*) as count
+        FROM bookings
+        GROUP BY status
+      `);
+      const cloudEnd = process.hrtime.bigint();
+      const cloudTime = Number(cloudEnd - cloudStart) / 1000000;
+
+      const diff = ((cloudTime - localTime) / localTime * 100).toFixed(1);
+      console.log(`  Aggregation: Local=${localTime.toFixed(2)}ms, Cloud=${cloudTime.toFixed(2)}ms (${diff}% diff)`);
+
+      testResults.tests.push({
+        test: 'Cloud: MySQL Aggregation',
+        local: localTime,
+        cloud: cloudTime,
+        difference: diff + '%'
+      });
+    });
+
+    test('Cloud Comparison: MongoDB Aggregation', async () => {
+      if (!isMongoDBCloudConfigured()) {
+        console.log('  ⚠️  MongoDB Cloud nicht konfiguriert - Test übersprungen');
+        return;
+      }
+
+      // Lokal
+      const localStart = process.hrtime.bigint();
+      const localResults = await Booking.aggregate([
+        { $group: { _id: '$status', avgPrice: { $avg: '$totalPrice' }, count: { $sum: 1 } } }
+      ]);
+      const localEnd = process.hrtime.bigint();
+      const localTime = Number(localEnd - localStart) / 1000000;
+
+      // Cloud - verwende separate Connection
+      const CloudBooking = cloudMongoDBConnection.model('BookingCloud', Booking.schema, 'bookings-cloud');
+      const cloudStart = process.hrtime.bigint();
+      const cloudResults = await CloudBooking.aggregate([
+        { $group: { _id: '$status', avgPrice: { $avg: '$totalPrice' }, count: { $sum: 1 } } }
+      ]);
+      const cloudEnd = process.hrtime.bigint();
+      const cloudTime = Number(cloudEnd - cloudStart) / 1000000;
+
+      const diff = ((cloudTime - localTime) / localTime * 100).toFixed(1);
+      console.log(`  Aggregation: Local=${localTime.toFixed(2)}ms, Cloud=${cloudTime.toFixed(2)}ms (${diff}% diff)`);
+
+      testResults.tests.push({
+        test: 'Cloud: MongoDB Aggregation',
+        local: localTime,
+        cloud: cloudTime,
+        difference: diff + '%'
+      });
     });
   });
 });
