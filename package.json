@@ -4,9 +4,9 @@
   "description": "Backend",
   "main": "server.js",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "DB_PASSWORD=root jest",
+    "test:watch": "DB_PASSWORD=root jest --watch",
+    "test:coverage": "DB_PASSWORD=root jest --coverage",
     "dev": "npx nodemon --exec npx babel-node src/server.js",
     "seed": "DB_PASSWORD=root node db/seed.js",
     "seed:small": "DB_PASSWORD=root NUM_CUSTOMERS=10 NUM_BOOKINGS=50 node db/seed.js",
@@ -20,13 +20,19 @@
     "seed:mongo:large": "DB_PASSWORD=root NUM_BOOKINGS=5000 node db/seedMongoDB.js",
     "seed:mongo:huge": "DB_PASSWORD=root NUM_BOOKINGS=50000 node db/seedMongoDB.js",
     "seed:mongo:max": "DB_PASSWORD=root NUM_BOOKINGS=100000 node db/seedMongoDB.js",
+    "seed:mongo:referenced": "DB_PASSWORD=root node db/seedMongoDBReferenced.js",
+    "seed:mongo:referenced:small": "DB_PASSWORD=root NUM_BOOKINGS=50 node db/seedMongoDBReferenced.js",
+    "seed:mongo:referenced:medium": "DB_PASSWORD=root NUM_BOOKINGS=500 node db/seedMongoDBReferenced.js",
+    "seed:mongo:referenced:large": "DB_PASSWORD=root NUM_BOOKINGS=5000 node db/seedMongoDBReferenced.js",
     "db:setup": "mysql -u root -p < db/db.sql",
-    "test:performance": "jest tests/performance.test.js"
+    "test:performance": "DB_PASSWORD=root jest tests/performance.test.js"
   },
   "keywords": [],
   "author": "Simeon Jovicic, Hanxiang Lee",
   "license": "ISC",
   "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "express": "^4.21.1",

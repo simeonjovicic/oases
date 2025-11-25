@@ -1,6 +1,9 @@
 const mysql = require('mysql2/promise');
 const Booking = require('../src/models/Booking');
 const bookingService = require('../src/services/bookingService');
+const bookingReferencedService = require('../src/services/bookingReferencedService');
+const bookingNoIndexService = require('../src/services/bookingNoIndexService');
+const { validateBookingSchema, validateBookingSchemaOrThrow } = require('../src/utils/jsonSchemaValidator');
 const { connectMongoDB, disconnectMongoDB } = require('../src/config/mongodb');
 const fs = require('fs');
 const path = require('path');
@@ -11,7 +14,7 @@ const CONFIG = {
   MYSQL_CONFIG: {
     host: "localhost",
     user: "root",
-    password: process.env.DB_PASSWORD || "",
+    password: process.env.DB_PASSWORD || "root", // Default: root für Docker MySQL
     database: "db",
   },
 };
@@ -296,10 +299,76 @@ class RelationalDBTests {
     const [result] = await this.connection.query(`DELETE FROM bookings WHERE id = ?`, [bookingId]);
     return result;
   }
+
+  // ========================================================================
+  // AGGREGATION QUERIES (SQL-Äquivalente)
+  // ========================================================================
+
+  /**
+   * Aggregation: Durchschnittspreis pro Status (SQL GROUP BY)
+   */
+  async getAveragePriceByStatus() {
+    const [results] = await this.connection.query(`
+      SELECT 
+        status as _id,
+        AVG(totalPrice) as averagePrice,
+        COUNT(*) as count,
+        SUM(totalPrice) as totalRevenue
+      FROM bookings
+      GROUP BY status
+      ORDER BY averagePrice DESC
+    `);
+    return results;
+  }
+
+  /**
+   * Aggregation: Buchungen pro Service-Kategorie (SQL mit JOIN)
+   */
+  async getBookingsByCategory() {
+    const [results] = await this.connection.query(`
+      SELECT 
+        s.category as _id,
+        COUNT(*) as count,
+        SUM(bs.priceAtBooking) as totalRevenue
+      FROM booking_services bs
+      INNER JOIN services s ON bs.serviceId = s.id
+      GROUP BY s.category
+      ORDER BY count DESC
+    `);
+    return results;
+  }
+
+  /**
+   * Aggregation: Top-Kunden nach Umsatz (SQL GROUP BY mit JOIN)
+   */
+  async getTopCustomersByRevenue(limit = 10) {
+    const [results] = await this.connection.query(`
+      SELECT 
+        b.customerId as customerId,
+        c.email as email,
+        CONCAT(c.firstName, ' ', c.lastName) as name,
+        SUM(b.totalPrice) as totalRevenue,
+        COUNT(*) as bookingCount
+      FROM bookings b
+      INNER JOIN customers c ON b.customerId = c.id
+      GROUP BY b.customerId, c.email, c.firstName, c.lastName
+      ORDER BY totalRevenue DESC
+      LIMIT ?
+    `, [limit]);
+    return results.map(r => ({
+      _id: {
+        customerId: r.customerId,
+        email: r.email,
+        name: r.name
+      },
+      totalRevenue: parseFloat(r.totalRevenue),
+      bookingCount: r.bookingCount
+    }));
+  }
 }
 
 // ============================================================================
-// MONGODB TESTS
+// MONGODB TESTS (Embedded)
 // ============================================================================
 
 class MongoDBTests {
@@ -669,6 +738,454 @@ describe('Performance Tests: Relational DB vs MongoDB', () => {
       expect(mongoResult.result).toBeDefined();
       
       console.log(`  Delete: MySQL=${mysqlResult.duration.toFixed(2)}ms, MongoDB=${mongoResult.duration.toFixed(2)}ms`);
+    });
+  });
+
+  // ========================================================================
+  // AGGREGATION QUERIES (Bonus: 0.5 Punkte)
+  // ========================================================================
+
+  describe('Aggregation Queries', () => {
+    test('Average Price by Status', async () => {
+      await ensureConnection();
+      
+      const mysqlResult = await measureTime(() => relationalTests.getAveragePriceByStatus());
+      const mongoResult = await measureTime(() => bookingService.getAveragePriceByStatus());
+
+      testResults.tests.push({
+        test: 'Aggregation: Average Price by Status',
+        mysql: mysqlResult.duration,
+        mongodb: mongoResult.duration
+      });
+
+      expect(mysqlResult.result).toBeDefined();
+      expect(mongoResult.result).toBeDefined();
+      
+      console.log(`  Aggregation (Avg Price by Status): MySQL=${mysqlResult.duration.toFixed(2)}ms, MongoDB=${mongoResult.duration.toFixed(2)}ms`);
+    });
+
+    test('Bookings by Category', async () => {
+      await ensureConnection();
+      
+      const mysqlResult = await measureTime(() => relationalTests.getBookingsByCategory());
+      const mongoResult = await measureTime(() => bookingService.getBookingsByCategory());
+
+      testResults.tests.push({
+        test: 'Aggregation: Bookings by Category',
+        mysql: mysqlResult.duration,
+        mongodb: mongoResult.duration
+      });
+
+      expect(mysqlResult.result).toBeDefined();
+      expect(mongoResult.result).toBeDefined();
+      
+      console.log(`  Aggregation (Bookings by Category): MySQL=${mysqlResult.duration.toFixed(2)}ms, MongoDB=${mongoResult.duration.toFixed(2)}ms`);
+    });
+
+    test('Top Customers by Revenue', async () => {
+      await ensureConnection();
+      
+      const mysqlResult = await measureTime(() => relationalTests.getTopCustomersByRevenue(10));
+      const mongoResult = await measureTime(() => bookingService.getTopCustomersByRevenue(10));
+
+      testResults.tests.push({
+        test: 'Aggregation: Top Customers by Revenue',
+        mysql: mysqlResult.duration,
+        mongodb: mongoResult.duration
+      });
+
+      expect(mysqlResult.result).toBeDefined();
+      expect(mongoResult.result).toBeDefined();
+      
+      console.log(`  Aggregation (Top Customers): MySQL=${mysqlResult.duration.toFixed(2)}ms, MongoDB=${mongoResult.duration.toFixed(2)}ms`);
+    });
+  });
+
+  // ========================================================================
+  // REFERENCING VARIANTE (Bonus: 1 Punkt)
+  // ========================================================================
+
+  describe('Referencing Variante: Embedded vs Referenced', () => {
+    test('Write: Embedded vs Referenced (100 Bookings)', async () => {
+      await ensureConnection();
+      
+      const testBookings = [];
+      for (let i = 0; i < 100; i++) {
+        testBookings.push(generateTestBooking(services, customerIds));
+      }
+
+      const embeddedResult = await measureTime(() => mongoTests.writeBookings(testBookings));
+      
+      // Für Referencing müssen wir zuerst Services und Customers erstellen
+      // Dann die Bookings mit Referenzen
+      const referencedResult = await measureTime(async () => {
+        return await bookingReferencedService.createManyBookings(testBookings);
+      });
+
+      testResults.tests.push({
+        test: 'Referencing: Write 100 (Embedded vs Referenced)',
+        embedded: embeddedResult.duration,
+        referenced: referencedResult.duration
+      });
+
+      expect(embeddedResult.result).toBeDefined();
+      expect(referencedResult.result).toBeDefined();
+      
+      console.log(`  Write 100: Embedded=${embeddedResult.duration.toFixed(2)}ms, Referenced=${referencedResult.duration.toFixed(2)}ms`);
+    });
+
+    test('Read: Embedded vs Referenced (Find All)', async () => {
+      await ensureConnection();
+      
+      const embeddedResult = await measureTime(() => mongoTests.findAllBookings());
+      const referencedResult = await measureTime(() => bookingReferencedService.findAllBookings());
+
+      testResults.tests.push({
+        test: 'Referencing: Find All (Embedded vs Referenced)',
+        embedded: embeddedResult.duration,
+        referenced: referencedResult.duration
+      });
+
+      expect(embeddedResult.result).toBeDefined();
+      expect(referencedResult.result).toBeDefined();
+      
+      console.log(`  Find All: Embedded=${embeddedResult.duration.toFixed(2)}ms, Referenced=${referencedResult.duration.toFixed(2)}ms`);
+    });
+
+    test('Read: Embedded vs Referenced (Find with Filter)', async () => {
+      await ensureConnection();
+      
+      const embeddedResult = await measureTime(() => mongoTests.findBookingsWithFilter('confirmed'));
+      const referencedResult = await measureTime(() => bookingReferencedService.findBookingsWithFilter({ status: 'confirmed' }));
+
+      testResults.tests.push({
+        test: 'Referencing: Find with Filter (Embedded vs Referenced)',
+        embedded: embeddedResult.duration,
+        referenced: referencedResult.duration
+      });
+
+      expect(embeddedResult.result).toBeDefined();
+      expect(referencedResult.result).toBeDefined();
+      
+      console.log(`  Find with Filter: Embedded=${embeddedResult.duration.toFixed(2)}ms, Referenced=${referencedResult.duration.toFixed(2)}ms`);
+    });
+  });
+
+  // ========================================================================
+  // INDEX TESTS (Bonus: 1.0 Punkte)
+  // ========================================================================
+
+  describe('Index Performance: With Index vs Without Index', () => {
+    test('Find by Status: With Index vs Without Index', async () => {
+      await ensureConnection();
+      
+      const withIndexResult = await measureTime(() => bookingService.findBookingsWithFilter({ status: 'confirmed' }));
+      const withoutIndexResult = await measureTime(() => bookingNoIndexService.findBookingsByStatus('confirmed'));
+
+      testResults.tests.push({
+        test: 'Index: Find by Status (With vs Without Index)',
+        withIndex: withIndexResult.duration,
+        withoutIndex: withoutIndexResult.duration
+      });
+
+      expect(withIndexResult.result).toBeDefined();
+      expect(withoutIndexResult.result).toBeDefined();
+      
+      const speedup = ((withoutIndexResult.duration - withIndexResult.duration) / withoutIndexResult.duration * 100).toFixed(1);
+      console.log(`  Find by Status: With Index=${withIndexResult.duration.toFixed(2)}ms, Without Index=${withoutIndexResult.duration.toFixed(2)}ms (${speedup}% faster with index)`);
+    });
+
+    test('Find by Email: With Index vs Without Index', async () => {
+      await ensureConnection();
+      
+      // Hole eine existierende Email
+      const [bookings] = await mysqlConnection.query(`
+        SELECT DISTINCT c.email 
+        FROM customers c
+        INNER JOIN bookings b ON c.id = b.customerId
+        LIMIT 1
+      `);
+      
+      if (bookings.length === 0) {
+        console.log('  ⚠️  Keine Bookings gefunden, Test übersprungen');
+        return;
+      }
+      
+      const testEmail = bookings[0].email;
+      
+      const withIndexResult = await measureTime(() => bookingService.findBookingsWithFilter({ 'customer.email': testEmail }));
+      const withoutIndexResult = await measureTime(() => bookingNoIndexService.findBookingsByEmail(testEmail));
+
+      testResults.tests.push({
+        test: 'Index: Find by Email (With vs Without Index)',
+        withIndex: withIndexResult.duration,
+        withoutIndex: withoutIndexResult.duration
+      });
+
+      expect(withIndexResult.result).toBeDefined();
+      expect(withoutIndexResult.result).toBeDefined();
+      
+      const speedup = ((withoutIndexResult.duration - withIndexResult.duration) / withoutIndexResult.duration * 100).toFixed(1);
+      console.log(`  Find by Email: With Index=${withIndexResult.duration.toFixed(2)}ms, Without Index=${withoutIndexResult.duration.toFixed(2)}ms (${speedup}% faster with index)`);
+    });
+
+    test('Find All with Sort: With Index vs Without Index', async () => {
+      await ensureConnection();
+      
+      const withIndexResult = await measureTime(() => bookingService.findBookingsWithSort(
+        { status: 'confirmed' },
+        { bookingDate: 1, totalPrice: -1 }
+      ));
+      const withoutIndexResult = await measureTime(() => bookingNoIndexService.findBookingsWithFilter({ status: 'confirmed' }));
+
+      testResults.tests.push({
+        test: 'Index: Find All with Sort (With vs Without Index)',
+        withIndex: withIndexResult.duration,
+        withoutIndex: withoutIndexResult.duration
+      });
+
+      expect(withIndexResult.result).toBeDefined();
+      expect(withoutIndexResult.result).toBeDefined();
+      
+      const speedup = ((withoutIndexResult.duration - withIndexResult.duration) / withoutIndexResult.duration * 100).toFixed(1);
+      console.log(`  Find All with Sort: With Index=${withIndexResult.duration.toFixed(2)}ms, Without Index=${withoutIndexResult.duration.toFixed(2)}ms (${speedup}% faster with index)`);
+    });
+  });
+
+  // ========================================================================
+  // JSON SCHEMA VALIDATION (Bonus: 0.75 Punkte)
+  // ========================================================================
+
+  describe('JSON Schema Validation', () => {
+    test('Valid Booking Data - Should Pass Validation', () => {
+      const validBooking = {
+        customer: {
+          customerId: 1,
+          firstName: "Max",
+          lastName: "Mustermann",
+          email: "max@example.com",
+          phone: "+43123456789",
+          address: "Hauptstraße 1",
+          city: "Wien",
+          postalCode: "1010"
+        },
+        services: [{
+          serviceId: 1,
+          name: "Massage",
+          category: "Massage",
+          price: 50.00,
+          timeSpan: "60 min",
+          quantity: 1,
+          priceAtBooking: 50.00
+        }],
+        bookingDate: new Date().toISOString(),
+        status: "pending",
+        totalPrice: 50.00,
+        notes: "Test booking"
+      };
+
+      const result = validateBookingSchema(validBooking);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      console.log('  ✅ Valid booking data passed validation');
+    });
+
+    test('Invalid Booking - Missing Required Fields', () => {
+      const invalidBooking = {
+        customer: {
+          firstName: "Max"
+          // Missing: lastName, email, customerId
+        },
+        services: []
+        // Missing: bookingDate, status, totalPrice
+      };
+
+      const result = validateBookingSchema(invalidBooking);
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      console.log(`  ❌ Invalid booking (missing fields) - ${result.errors.length} validation errors`);
+    });
+
+    test('Invalid Booking - Invalid Email Format', () => {
+      const invalidBooking = {
+        customer: {
+          customerId: 1,
+          firstName: "Max",
+          lastName: "Mustermann",
+          email: "invalid-email" // Invalid email format
+        },
+        services: [{
+          serviceId: 1,
+          name: "Massage",
+          category: "Massage",
+          price: 50.00,
+          timeSpan: "60 min",
+          priceAtBooking: 50.00
+        }],
+        bookingDate: new Date().toISOString(),
+        status: "pending",
+        totalPrice: 50.00
+      };
+
+      const result = validateBookingSchema(invalidBooking);
+      expect(result.valid).toBe(false);
+      const emailError = result.errors.find(e => e.path.includes('email'));
+      expect(emailError).toBeDefined();
+      console.log(`  ❌ Invalid booking (invalid email) - ${result.errors.length} validation errors`);
+    });
+
+    test('Invalid Booking - Invalid Status', () => {
+      const invalidBooking = {
+        customer: {
+          customerId: 1,
+          firstName: "Max",
+          lastName: "Mustermann",
+          email: "max@example.com"
+        },
+        services: [{
+          serviceId: 1,
+          name: "Massage",
+          category: "Massage",
+          price: 50.00,
+          timeSpan: "60 min",
+          priceAtBooking: 50.00
+        }],
+        bookingDate: new Date().toISOString(),
+        status: "invalid_status", // Invalid status
+        totalPrice: 50.00
+      };
+
+      const result = validateBookingSchema(invalidBooking);
+      expect(result.valid).toBe(false);
+      const statusError = result.errors.find(e => e.path.includes('status'));
+      expect(statusError).toBeDefined();
+      console.log(`  ❌ Invalid booking (invalid status) - ${result.errors.length} validation errors`);
+    });
+
+    test('Invalid Booking - Invalid Category', () => {
+      const invalidBooking = {
+        customer: {
+          customerId: 1,
+          firstName: "Max",
+          lastName: "Mustermann",
+          email: "max@example.com"
+        },
+        services: [{
+          serviceId: 1,
+          name: "Massage",
+          category: "InvalidCategory", // Invalid category
+          price: 50.00,
+          timeSpan: "60 min",
+          priceAtBooking: 50.00
+        }],
+        bookingDate: new Date().toISOString(),
+        status: "pending",
+        totalPrice: 50.00
+      };
+
+      const result = validateBookingSchema(invalidBooking);
+      expect(result.valid).toBe(false);
+      const categoryError = result.errors.find(e => e.path.includes('category'));
+      expect(categoryError).toBeDefined();
+      console.log(`  ❌ Invalid booking (invalid category) - ${result.errors.length} validation errors`);
+    });
+
+    test('Invalid Booking - Negative Price', () => {
+      const invalidBooking = {
+        customer: {
+          customerId: 1,
+          firstName: "Max",
+          lastName: "Mustermann",
+          email: "max@example.com"
+        },
+        services: [{
+          serviceId: 1,
+          name: "Massage",
+          category: "Massage",
+          price: -50.00, // Negative price
+          timeSpan: "60 min",
+          priceAtBooking: -50.00
+        }],
+        bookingDate: new Date().toISOString(),
+        status: "pending",
+        totalPrice: -50.00
+      };
+
+      const result = validateBookingSchema(invalidBooking);
+      expect(result.valid).toBe(false);
+      const priceError = result.errors.find(e => e.path.includes('price') || e.path.includes('totalPrice'));
+      expect(priceError).toBeDefined();
+      console.log(`  ❌ Invalid booking (negative price) - ${result.errors.length} validation errors`);
+    });
+
+    test('Invalid Booking - Empty Services Array', () => {
+      const invalidBooking = {
+        customer: {
+          customerId: 1,
+          firstName: "Max",
+          lastName: "Mustermann",
+          email: "max@example.com"
+        },
+        services: [], // Empty array (minItems: 1)
+        bookingDate: new Date().toISOString(),
+        status: "pending",
+        totalPrice: 0
+      };
+
+      const result = validateBookingSchema(invalidBooking);
+      expect(result.valid).toBe(false);
+      const servicesError = result.errors.find(e => e.path.includes('services'));
+      expect(servicesError).toBeDefined();
+      console.log(`  ❌ Invalid booking (empty services) - ${result.errors.length} validation errors`);
+    });
+
+    test('Performance: Validation Overhead', () => {
+      const validBooking = {
+        customer: {
+          customerId: 1,
+          firstName: "Max",
+          lastName: "Mustermann",
+          email: "max@example.com"
+        },
+        services: [{
+          serviceId: 1,
+          name: "Massage",
+          category: "Massage",
+          price: 50.00,
+          timeSpan: "60 min",
+          priceAtBooking: 50.00
+        }],
+        bookingDate: new Date().toISOString(),
+        status: "pending",
+        totalPrice: 50.00
+      };
+
+      // Test ohne Validierung
+      const startWithout = process.hrtime.bigint();
+      for (let i = 0; i < 1000; i++) {
+        // Simuliere einfache Prüfung
+        if (!validBooking.customer || !validBooking.services) {
+          throw new Error('Invalid');
+        }
+      }
+      const endWithout = process.hrtime.bigint();
+      const timeWithout = Number(endWithout - startWithout) / 1000000;
+
+      // Test mit Validierung
+      const startWith = process.hrtime.bigint();
+      for (let i = 0; i < 1000; i++) {
+        validateBookingSchema(validBooking);
+      }
+      const endWith = process.hrtime.bigint();
+      const timeWith = Number(endWith - startWith) / 1000000;
+
+      testResults.tests.push({
+        test: 'JSON Schema: Validation Overhead (1000 validations)',
+        withoutValidation: timeWithout,
+        withValidation: timeWith
+      });
+
+      console.log(`  Validation Overhead: Without=${timeWithout.toFixed(2)}ms, With=${timeWith.toFixed(2)}ms (${((timeWith - timeWithout) / timeWithout * 100).toFixed(1)}% overhead)`);
     });
   });
 });

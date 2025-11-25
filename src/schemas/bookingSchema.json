@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["customer", "services", "bookingDate", "status", "totalPrice"],
+  "properties": {
+    "customer": {
+      "type": "object",
+      "required": ["customerId", "firstName", "lastName", "email"],
+      "properties": {
+        "customerId": {
+          "type": "number",
+          "minimum": 0
+        },
+        "firstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 255
+        },
+        "phone": {
+          "type": ["string", "null"],
+          "maxLength": 50
+        },
+        "address": {
+          "type": ["string", "null"],
+          "maxLength": 255
+        },
+        "city": {
+          "type": ["string", "null"],
+          "maxLength": 255
+        },
+        "postalCode": {
+          "type": ["string", "null"],
+          "maxLength": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "services": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["serviceId", "name", "category", "price", "timeSpan", "priceAtBooking"],
+        "properties": {
+          "serviceId": {
+            "type": "number",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "category": {
+            "type": "string",
+            "enum": ["Nägel", "Haarentfernung", "Gesicht", "Massage", "Körper"]
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0
+          },
+          "timeSpan": {
+            "type": "string",
+            "minLength": 1
+          },
+          "image": {
+            "type": ["string", "null"]
+          },
+          "description": {
+            "type": ["string", "null"]
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 1,
+            "default": 1
+          },
+          "priceAtBooking": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "bookingDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "confirmed", "completed", "cancelled"]
+    },
+    "totalPrice": {
+      "type": "number",
+      "minimum": 0
+    },
+    "notes": {
+      "type": ["string", "null"]
+    }
+  },
+  "additionalProperties": false
+}
+
+
