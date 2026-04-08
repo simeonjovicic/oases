@@ -36,6 +36,11 @@ const db = mysql.createPool({
 
 app.use("/images", express.static(path.join(__dirname, "../assets/images")));
 
+// PING ENDPOINT (For CI/CD Demo)
+app.get("/api/ping", (req, res) => {
+  res.json({ message: "Verbindung zum Backend erfolgreich! CI/CD funktioniert." });
+});
+
 // GET ALL (Public - no authentication required)
 app.get("/api/services", async (req, res) => {
   try {
