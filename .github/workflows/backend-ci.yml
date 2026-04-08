@@ -24,6 +24,10 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
 
     steps:
       - name: Code auschecken
@@ -47,7 +51,7 @@ jobs:
       - name: Server starten und Health Check
         run: |
           npx babel-node src/server.js &
-          sleep 5
+          npx wait-on tcp:5000 -t 30000
           curl -f http://localhost:5000/api/services || exit 1
           kill %1
         env:
