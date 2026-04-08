@@ -28,10 +28,10 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "root",
-  database: "db",
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "root",
+  database: process.env.DB_NAME || "db",
 });
 
 app.use("/images", express.static(path.join(__dirname, "../assets/images")));
@@ -725,7 +725,7 @@ app.delete("/api/mongo/bookings/:id", async (req, res) => {
 });
 
 // DISPLAY PORT TYPE SHIT
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB on startup
 connectMongoDB().then(() => {

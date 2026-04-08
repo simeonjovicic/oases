@@ -1,0 +1,60 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: ["backend"]
+  pull_request:
+    branches: ["backend"]
+
+jobs:
+  build:
+    name: Build & Docker
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js 18 einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Datenbank initialisieren
+        run: |
+          mysql -h 127.0.0.1 -u root -proot db < db/db.sql
+        env:
+          MYSQL_PWD: root
+
+      - name: Server starten und Health Check
+        run: |
+          npx babel-node src/server.js &
+          sleep 5
+          curl -f http://localhost:5000/api/services || exit 1
+          kill %1
+        env:
+          DB_HOST: "127.0.0.1"
+          DB_USER: "root"
+          DB_PASSWORD: "root"
+          DB_NAME: "db"
+
+      - name: Docker Image bauen
+        run: docker build -t oase-spa-backend:latest .
