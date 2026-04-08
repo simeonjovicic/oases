@@ -314,7 +314,10 @@ app.get("/api/customers", async (req, res) => {
   } catch (error) {
     console.error("Error fetching customers, fallback to mock data:", error);
     res.json([
-      { id: 1, firstName: "Anna", lastName: "Muster", email: "anna@example.com", phone: "+43 664 1234567" }
+      { id: 1, firstName: "Anna", lastName: "Muster", email: "anna@example.com", phone: "+43 664 1234567" },
+      { id: 2, firstName: "Felix", lastName: "Müller", email: "felix@example.com", phone: "0676 9876543" },
+      { id: 3, firstName: "Maria", lastName: "Schmid", email: "maria@example.com", phone: "0699 1112223" },
+      { id: 4, firstName: "David", lastName: "Huber", email: "david@example.com", phone: "0680 4445556" }
     ]);
   }
 });
@@ -416,6 +419,26 @@ app.get("/api/bookings", async (req, res) => {
         notes: "Mock Data Buchung (Kein MySQL Server)",
         customer: { id: 1, firstName: "Anna", lastName: "Muster", email: "anna@example.com" },
         services: [{ serviceId: 1, name: "Traditionelle Thai Massage", price: 65 }]
+      },
+      {
+        id: 2,
+        customerId: 2,
+        bookingDate: new Date(Date.now() + 86400000).toISOString(),
+        status: "pending",
+        totalPrice: 115,
+        notes: "Geschenk für eine Freundin",
+        customer: { id: 2, firstName: "Felix", lastName: "Müller", email: "felix@example.com" },
+        services: [{ serviceId: 2, name: "Aroma Öl Massage", price: 55 }, { serviceId: 4, name: "Hot Stone Massage", price: 60 }]
+      },
+      {
+        id: 3,
+        customerId: 3,
+        bookingDate: new Date(Date.now() - 172800000).toISOString(),
+        status: "completed",
+        totalPrice: 40,
+        notes: "Bitte nicht zu stark massieren",
+        customer: { id: 3, firstName: "Maria", lastName: "Schmid", email: "maria@example.com" },
+        services: [{ serviceId: 3, name: "Fußreflexzonen Massage", price: 40 }]
       }
     ]);
   }
@@ -621,6 +644,16 @@ app.get("/api/mongo/bookings", async (req, res) => {
         totalPrice: 55,
         status: "confirmed",
         notes: "Automatischer Mock-Eintrag (Keine DB-Verbindung)"
+      },
+      {
+        _id: "mock124",
+        customer: { firstName: "Lukas", lastName: "Wagner", email: "lukas@example.com", phone: "0664987654" },
+        services: [{ _id: 2, name: "Thai Massage Spezial", price: 80 }],
+        startTime: new Date(Date.now() + 172800000).toISOString(),
+        endTime: new Date(Date.now() + 172800000 + 5400000).toISOString(),
+        totalPrice: 80,
+        status: "pending",
+        notes: "Gutschein eingelöst"
       }
     ]);
   }
