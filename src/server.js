@@ -11,7 +11,7 @@ const bookingService = require("./services/bookingService");
 app.use(cors());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://oase-spa-wien.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: [
       "Content-Type",
